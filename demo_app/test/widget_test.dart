@@ -42,7 +42,7 @@ void main() {
     );
   });
 
-  testWidgets('assistantFlow chat renders all 5 card views and computes total', (
+  testWidgets('assistantFlow chat renders the 3 demo card views and computes total', (
     WidgetTester tester,
   ) async {
     final mockHttp = MockClient((http.Request request) async {
@@ -146,7 +146,7 @@ void main() {
     await tester.pumpWidget(RefundDemoApp(apiClient: apiClient));
 
     expect(find.text('Sipariş Asistanı (Genkit demo)'), findsOneWidget);
-    expect(find.byType(ActionChip), findsNWidgets(5));
+    expect(find.byType(ActionChip), findsNWidgets(3));
 
     // 1. refund_summary
     await tester.tap(find.text("1042'deki 2 latteyi iade etmek istiyorum."));
@@ -170,18 +170,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('160 TL'), findsWidgets);
     expect(find.bySemanticsLabel(RegExp('card_order_details')), findsOneWidget);
-
-    // 4. clarification
-    await tester.tap(find.text('Siparişimi iade etmek istiyorum.'));
-    await tester.pumpAndSettle();
-    expect(find.text('Biraz daha bilgi gerekli'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('card_clarification')), findsOneWidget);
-
-    // 5. unsupported
-    await tester.tap(find.text('Bugün hava nasıl?'));
-    await tester.pumpAndSettle();
-    expect(find.text('Bu konuda yardımcı olamıyorum'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('card_unsupported')), findsOneWidget);
   });
 
   testWidgets('app bar toggle switches to legacy refundFlow view', (

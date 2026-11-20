@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 import 'assistant_cards.dart';
 import 'refund_api.dart';
 
-/// Five tappable example prompts shown above the chat input.
+/// Three tappable example prompts shown above the chat input.
 const List<String> assistantExamplePrompts = <String>[
   "1042'deki 2 latteyi iade etmek istiyorum.",
   'Kargom nerede? Sipariş 1043',
   '1044 numaralı siparişte ne vardı?',
-  'Siparişimi iade etmek istiyorum.',
-  'Bugün hava nasıl?',
 ];
 
 enum _ChatEntryKind { user, assistant, loading, error }

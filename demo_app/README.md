@@ -61,7 +61,7 @@ cd demo_app
 flutter run -d chrome --web-port=5050
 ```
 
-In a third terminal, run the Maestro flow (it taps all 5 example chips in order, waits up to 120 s for each card via Semantics labels, and saves 5 screenshots):
+In a third terminal, run the Maestro flow (it taps the 3 example chips in order, waits up to 120 s for each card via Semantics labels, and saves 3 screenshots):
 
 ```bash
 maestro test demo_app/maestro/demo_flow.yaml

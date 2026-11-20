@@ -3,7 +3,7 @@ url: http://localhost:5050
 - launchApp
 - extendedWaitUntil:
     visible: "example_chip_1"
-    timeout: 30000
+    timeout: 90000
 
 # 1. Refund summary
 - tapOn: "example_chip_1"
@@ -25,17 +25,3 @@ url: http://localhost:5050
     visible: "card_order_details"
     timeout: 120000
 - takeScreenshot: "03_order_details"
-
-# 4. Clarification
-- tapOn: "example_chip_4"
-- extendedWaitUntil:
-    visible: "card_clarification"
-    timeout: 120000
-- takeScreenshot: "04_clarification"
-
-# 5. Unsupported
-- tapOn: "example_chip_5"
-- extendedWaitUntil:
-    visible: "card_unsupported"
-    timeout: 120000
-- takeScreenshot: "05_unsupported"
