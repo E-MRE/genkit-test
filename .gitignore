@@ -7,6 +7,15 @@
 .buildlog/
 .history
 
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Sandbox/Node artifacts (unused by Dart project)
+node_modules/
+
+
 # Flutter repo-specific
 /bin/cache/
 /bin/internal/bootstrap.bat
