@@ -17,11 +17,18 @@ const List<String> refundStatuses = <String>[
   'not_refund_request',
 ];
 
-/// Fake in-memory order catalog used by the `getOrder` tool.
-const Map<int, List<({String product, int quantity})>> fakeOrders = {
-  1042: [(product: 'Latte', quantity: 3), (product: 'Cheesecake', quantity: 1)],
-  1043: [(product: 'Su', quantity: 2), (product: 'Sandviç', quantity: 1)],
-  1044: [(product: 'Filtre kahve', quantity: 1)],
+/// Fake in-memory order catalog used by the `getOrder` tool (unit prices in TL).
+const Map<int, List<({String product, int quantity, double unitPrice})>>
+fakeOrders = {
+  1042: [
+    (product: 'Latte', quantity: 3, unitPrice: 95),
+    (product: 'Cheesecake', quantity: 1, unitPrice: 140),
+  ],
+  1043: [
+    (product: 'Su', quantity: 2, unitPrice: 20),
+    (product: 'Sandviç', quantity: 1, unitPrice: 120),
+  ],
+  1044: [(product: 'Filtre kahve', quantity: 1, unitPrice: 80)],
 };
 
 /// Input schema for the `getOrder` tool.
@@ -31,7 +38,7 @@ abstract class $GetOrderInput {
   int get orderNumber;
 }
 
-/// Single item entry in an order or refund request.
+/// Single item entry in a refund request (`refundFlow` schema).
 @Schema(description: 'A product and integer quantity.')
 abstract class $RefundItem {
   @Field(
@@ -47,6 +54,19 @@ abstract class $RefundItem {
   int get quantity;
 }
 
+/// Single item entry returned by `getOrder`, including unit price in TL.
+@Schema(description: 'An order item with product name, quantity, and unit price in TL.')
+abstract class $PricedOrderItem {
+  @Field(description: 'Exact product name in the order.')
+  String get product;
+
+  @IntegerField(minimum: 1, description: 'Ordered quantity of the product.')
+  int get quantity;
+
+  @DoubleField(minimum: 0, description: 'Unit price of the product in TL.')
+  double get unitPrice;
+}
+
 /// Output schema returned by the `getOrder` tool.
 @Schema(description: 'Result of looking up an order by orderNumber.')
 abstract class $GetOrderOutput {
@@ -60,7 +80,7 @@ abstract class $GetOrderOutput {
   int get orderNumber;
 
   @Field(description: 'Items in the order; empty when status is "not found".')
-  List<$RefundItem> get items;
+  List<$PricedOrderItem> get items;
 }
 
 /// Structured output schema for `refundFlow`.
@@ -199,7 +219,11 @@ RefundAssistant createRefundAssistant({
           orderNumber: input.orderNumber,
           items: [
             for (final entry in entries)
-              RefundItem(product: entry.product, quantity: entry.quantity),
+              PricedOrderItem(
+                product: entry.product,
+                quantity: entry.quantity,
+                unitPrice: entry.unitPrice,
+              ),
           ],
         ),
       );

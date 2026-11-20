@@ -1,10 +1,10 @@
-# İade Asistanı (Flutter Demo)
+# Sipariş Asistanı (Flutter Demo)
 
-Minimal single-screen Flutter demo app (Web & macOS) that calls the local Genkit Dart `refundFlow` HTTP server.
+Minimal Flutter demo app (Web & macOS) that calls the local Genkit Dart HTTP server (`POST /assistantFlow` by default, with an app-bar toggle to switch to the legacy `POST /refundFlow` card).
 
-- No API key lives in this app; it only sends requests to the local server (`POST /refundFlow`).
-- Default server URL: `http://localhost:8080/refundFlow` (override with `--dart-define=API_URL=...`).
-- Request timeout: `120 s` to accommodate occasional slow Gemini free-tier responses.
+- No API key lives in this app; it only talks to the local server.
+- Default server URL: `http://localhost:8080/refundFlow` (override with `--dart-define=API_URL=...`; the app resolves both `/assistantFlow` and `/refundFlow` from it).
+- Client timeout: `120 s` to accommodate occasional slow Gemini free-tier responses.
 
 ## Prerequisites
 
@@ -17,6 +17,8 @@ Minimal single-screen Flutter demo app (Web & macOS) that calls the local Genkit
 dart run bin/server.dart
 ```
 
+This serves `POST /assistantFlow`, `POST /refundFlow`, and `GET /health` on port `8080` with localhost CORS headers.
+
 ## 2. Run the Flutter demo
 
 Install dependencies once inside `demo_app/`:
@@ -26,7 +28,7 @@ cd demo_app
 flutter pub get
 ```
 
-Run on Web (Chrome):
+Run on Chrome (web):
 
 ```bash
 flutter run -d chrome
@@ -41,7 +43,28 @@ flutter run -d macos
 To point at a different server URL or port:
 
 ```bash
-flutter run -d chrome --dart-define=API_URL=http://localhost:9090/refundFlow
+flutter run -d chrome --dart-define=API_URL=http://localhost:9090
+```
+
+## 3. Run the Maestro flow on web
+
+Start the backend server from the repo root:
+
+```bash
+dart run bin/server.dart
+```
+
+Serve the Flutter web app on port `5050` (matching `url: http://localhost:5050` in `maestro/demo_flow.yaml`):
+
+```bash
+cd demo_app
+flutter run -d chrome --web-port=5050
+```
+
+In a third terminal, run the Maestro flow (it taps all 5 example chips in order, waits up to 120 s for each card via Semantics labels, and saves 5 screenshots):
+
+```bash
+maestro test demo_app/maestro/demo_flow.yaml
 ```
 
 ## Analyze & test

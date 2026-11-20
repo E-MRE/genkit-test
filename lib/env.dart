@@ -2,8 +2,13 @@ import 'dart:io';
 
 /// Reads an environment variable from [Platform.environment], falling back to a
 /// local `.env` file in the current working directory if present.
-String? readEnvVar(String name, {File? envFile}) {
-  final fromProcess = Platform.environment[name]?.trim();
+String? readEnvVar(
+  String name, {
+  File? envFile,
+  Map<String, String>? environment,
+}) {
+  final env = environment ?? Platform.environment;
+  final fromProcess = env[name]?.trim();
   if (fromProcess != null && fromProcess.isNotEmpty) {
     return fromProcess;
   }

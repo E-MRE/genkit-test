@@ -108,7 +108,27 @@ Then open **http://localhost:4000** in your browser (or add `-o` to open it auto
 
 ## Demo
 
-A minimal Flutter demo app (web & macOS) that calls `refundFlow` over HTTP lives in [`demo_app/`](demo_app/README.md). Start the server from the repo root with `dart run bin/server.dart`, then run `flutter run -d chrome` or `flutter run -d macos` inside `demo_app/`.
+A minimal Flutter demo app (web & macOS) lives in [`demo_app/`](demo_app/README.md). It defaults to the chat-style `POST /assistantFlow` screen (with an app-bar toggle back to `POST /refundFlow`).
+
+1. Start the server from the repo root:
+
+```bash
+dart run bin/server.dart
+```
+
+2. Run the Flutter demo on Chrome (or macOS via `flutter run -d macos`):
+
+```bash
+cd demo_app
+flutter pub get
+flutter run -d chrome
+```
+
+3. Run the Maestro web flow (with the server running and Flutter web served on port `5050` via `flutter run -d chrome --web-port=5050`):
+
+```bash
+maestro test demo_app/maestro/demo_flow.yaml
+```
 
 ## Tests & static analysis
 

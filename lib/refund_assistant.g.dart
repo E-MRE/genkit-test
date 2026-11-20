@@ -69,7 +69,7 @@ base class _GetOrderInputTypeFactory extends SchemanticType<GetOrderInput> {
   );
 }
 
-/// Single item entry in an order or refund request.
+/// Single item entry in a refund request (`refundFlow` schema).
 base class RefundItem {
   /// Creates a [RefundItem] from a JSON map.
   factory RefundItem.fromJson(Map<String, dynamic> json) => $schema.parse(json);
@@ -143,6 +143,98 @@ base class _RefundItemTypeFactory extends SchemanticType<RefundItem> {
   );
 }
 
+/// Single item entry returned by `getOrder`, including unit price in TL.
+base class PricedOrderItem {
+  /// Creates a [PricedOrderItem] from a JSON map.
+  factory PricedOrderItem.fromJson(Map<String, dynamic> json) =>
+      $schema.parse(json);
+
+  PricedOrderItem._(this._json);
+
+  PricedOrderItem({
+    required String product,
+    required int quantity,
+    required double unitPrice,
+  }) {
+    _json = {'product': product, 'quantity': quantity, 'unitPrice': unitPrice};
+  }
+
+  late final Map<String, dynamic> _json;
+
+  /// The JSON schema and type descriptor for [PricedOrderItem].
+  static const SchemanticType<PricedOrderItem> $schema =
+      _PricedOrderItemTypeFactory();
+
+  String get product {
+    return _json['product'] as String;
+  }
+
+  set product(String value) {
+    _json['product'] = value;
+  }
+
+  int get quantity {
+    return _json['quantity'] as int;
+  }
+
+  set quantity(int value) {
+    _json['quantity'] = value;
+  }
+
+  double get unitPrice {
+    return (_json['unitPrice'] as num).toDouble();
+  }
+
+  set unitPrice(double value) {
+    _json['unitPrice'] = value;
+  }
+
+  @override
+  String toString() {
+    return _json.toString();
+  }
+
+  /// Serializes this [PricedOrderItem] to a JSON map.
+  Map<String, dynamic> toJson() {
+    return _json;
+  }
+}
+
+base class _PricedOrderItemTypeFactory extends SchemanticType<PricedOrderItem> {
+  const _PricedOrderItemTypeFactory();
+
+  @override
+  PricedOrderItem parse(Object? json) {
+    return PricedOrderItem._(json as Map<String, dynamic>);
+  }
+
+  @override
+  JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
+    name: 'PricedOrderItem',
+    definition: $Schema
+        .object(
+          properties: {
+            'product': $Schema.string(
+              description: 'Exact product name in the order.',
+            ),
+            'quantity': $Schema.integer(
+              description: 'Ordered quantity of the product.',
+              minimum: 1,
+            ),
+            'unitPrice': $Schema.number(
+              description: 'Unit price of the product in TL.',
+              minimum: 0,
+            ),
+          },
+          required: ['product', 'quantity', 'unitPrice'],
+          description:
+              'An order item with product name, quantity, and unit price in TL.',
+        )
+        .value,
+    dependencies: [],
+  );
+}
+
 /// Output schema returned by the `getOrder` tool.
 base class GetOrderOutput {
   /// Creates a [GetOrderOutput] from a JSON map.
@@ -154,7 +246,7 @@ base class GetOrderOutput {
   GetOrderOutput({
     required String status,
     required int orderNumber,
-    required List<RefundItem> items,
+    required List<PricedOrderItem> items,
   }) {
     _json = {
       'status': status,
@@ -185,13 +277,13 @@ base class GetOrderOutput {
     _json['orderNumber'] = value;
   }
 
-  List<RefundItem> get items {
+  List<PricedOrderItem> get items {
     return (_json['items'] as List)
-        .map((e) => RefundItem.fromJson(e as Map<String, dynamic>))
+        .map((e) => PricedOrderItem.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
-  set items(List<RefundItem> value) {
+  set items(List<PricedOrderItem> value) {
     _json['items'] = value.map((e) => e.toJson()).toList();
   }
 
@@ -231,14 +323,14 @@ base class _GetOrderOutputTypeFactory extends SchemanticType<GetOrderOutput> {
             'items': $Schema.list(
               description:
                   'Items in the order; empty when status is "not found".',
-              items: $Schema.fromMap({'\$ref': r'#/$defs/RefundItem'}),
+              items: $Schema.fromMap({'\$ref': r'#/$defs/PricedOrderItem'}),
             ),
           },
           required: ['status', 'orderNumber', 'items'],
           description: 'Result of looking up an order by orderNumber.',
         )
         .value,
-    dependencies: [RefundItem.$schema],
+    dependencies: [PricedOrderItem.$schema],
   );
 }
 

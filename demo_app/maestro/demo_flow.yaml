@@ -1,0 +1,41 @@
+url: http://localhost:5050
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "example_chip_1"
+    timeout: 30000
+
+# 1. Refund summary
+- tapOn: "example_chip_1"
+- extendedWaitUntil:
+    visible: "card_refund_summary"
+    timeout: 120000
+- takeScreenshot: "01_refund_summary"
+
+# 2. Shipment tracking
+- tapOn: "example_chip_2"
+- extendedWaitUntil:
+    visible: "card_shipment_tracking"
+    timeout: 120000
+- takeScreenshot: "02_shipment_tracking"
+
+# 3. Order details
+- tapOn: "example_chip_3"
+- extendedWaitUntil:
+    visible: "card_order_details"
+    timeout: 120000
+- takeScreenshot: "03_order_details"
+
+# 4. Clarification
+- tapOn: "example_chip_4"
+- extendedWaitUntil:
+    visible: "card_clarification"
+    timeout: 120000
+- takeScreenshot: "04_clarification"
+
+# 5. Unsupported
+- tapOn: "example_chip_5"
+- extendedWaitUntil:
+    visible: "card_unsupported"
+    timeout: 120000
+- takeScreenshot: "05_unsupported"

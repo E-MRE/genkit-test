@@ -22,9 +22,18 @@ void main() {
           'GEMINI_API_KEY="test-key-123"\n',
         );
 
-      expect(readEnvVar('OTHER', envFile: envFile), 'value');
-      expect(readEnvVar('GEMINI_API_KEY', envFile: envFile), 'test-key-123');
-      expect(readEnvVar('MISSING_KEY', envFile: envFile), isNull);
+      expect(
+        readEnvVar('OTHER', envFile: envFile, environment: const {}),
+        'value',
+      );
+      expect(
+        readEnvVar('GEMINI_API_KEY', envFile: envFile, environment: const {}),
+        'test-key-123',
+      );
+      expect(
+        readEnvVar('MISSING_KEY', envFile: envFile, environment: const {}),
+        isNull,
+      );
     });
   });
 
