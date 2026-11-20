@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -46,28 +47,27 @@ void main() {
       )).output;
       expect(r1042.status, 'found');
       expect(r1042.orderNumber, 1042);
-      expect(
-        r1042.items.map((i) => (i.product, i.quantity)).toList(),
-        [('Latte', 3), ('Cheesecake', 1)],
-      );
+      expect(r1042.items.map((i) => (i.product, i.quantity)).toList(), [
+        ('Latte', 3),
+        ('Cheesecake', 1),
+      ]);
 
       final r1043 = (await assistant.getOrderTool(
         GetOrderInput(orderNumber: 1043),
       )).output;
       expect(r1043.status, 'found');
-      expect(
-        r1043.items.map((i) => (i.product, i.quantity)).toList(),
-        [('Su', 2), ('Sandviç', 1)],
-      );
+      expect(r1043.items.map((i) => (i.product, i.quantity)).toList(), [
+        ('Su', 2),
+        ('Sandviç', 1),
+      ]);
 
       final r1044 = (await assistant.getOrderTool(
         GetOrderInput(orderNumber: 1044),
       )).output;
       expect(r1044.status, 'found');
-      expect(
-        r1044.items.map((i) => (i.product, i.quantity)).toList(),
-        [('Filtre kahve', 1)],
-      );
+      expect(r1044.items.map((i) => (i.product, i.quantity)).toList(), [
+        ('Filtre kahve', 1),
+      ]);
 
       final r9999 = (await assistant.getOrderTool(
         GetOrderInput(orderNumber: 9999),
@@ -171,6 +171,7 @@ void main() {
       expect(table, contains('actual status'));
       expect(table, contains('tool called (yes/no)'));
       expect(table, contains('pass/fail'));
+      expect(table, contains('error'));
       expect(table, contains('| 1    | ok'));
       expect(table, contains('| yes'));
       expect(table, contains('| pass'));
@@ -186,6 +187,122 @@ void main() {
           jsonDecode(File(outPath).readAsStringSync()) as Map<String, dynamic>;
       expect(decoded['summary']['passed'], 1);
       expect(decoded['cases'], hasLength(1));
+    });
+  });
+
+  group('pass rule and runner', () {
+    final ok1 = RefundResponse(
+      status: 'ok',
+      orderNumber: 1042,
+      items: [RefundItem(product: 'Latte', quantity: 2)],
+      reason: null,
+      missingInfo: const [],
+    );
+    final missing = RefundResponse(
+      status: 'missing_info',
+      orderNumber: null,
+      items: const [],
+      reason: null,
+      missingInfo: const ['orderNumber'],
+    );
+
+    test('tool must be called except for cases 4 and 9', () {
+      final case1 = refundEvalCases.firstWhere((c) => c.id == 1);
+      final case4 = refundEvalCases.firstWhere((c) => c.id == 4);
+      final case9 = refundEvalCases.firstWhere((c) => c.id == 9);
+      for (final c in refundEvalCases) {
+        expect(
+          c.expectToolCall,
+          !(c.id == 4 || c.id == 9),
+          reason: 'case ${c.id}',
+        );
+      }
+      expect(casePasses(case1, ok1, toolCalled: true), isTrue);
+      expect(casePasses(case1, ok1, toolCalled: false), isFalse);
+      expect(casePasses(case4, missing, toolCalled: false), isTrue);
+      expect(casePasses(case4, missing, toolCalled: true), isFalse);
+      final notRefund = RefundResponse(
+        status: 'not_refund_request',
+        orderNumber: null,
+        items: const [],
+        reason: null,
+        missingInfo: const [],
+      );
+      expect(casePasses(case9, notRefund, toolCalled: false), isTrue);
+      expect(casePasses(case9, notRefund, toolCalled: true), isFalse);
+    });
+
+    test('shortError truncates to 80 chars on one line', () {
+      final short = shortError('a\n' * 100);
+      expect(short.length, 80);
+      expect(short, isNot(contains('\n')));
+      expect(shortError('boom'), 'boom');
+    });
+
+    test('quota/transient errors are retried up to 3 attempts; other errors are not; stuck case times out', () async {
+      final assistant = createRefundAssistant(
+        apiKey: 'dummy-key',
+        isDevEnv: false,
+      );
+      addTearDown(assistant.ai.shutdown);
+      final case4 = refundEvalCases.firstWhere((c) => c.id == 4);
+
+      var calls = 0;
+      var results = await runEvalSuite(
+        assistant,
+        cases: [case4],
+        delayBetweenCases: Duration.zero,
+        retryDelay: Duration.zero,
+        runFlow: (_) async {
+          calls++;
+          if (calls == 1) throw Exception('429 RESOURCE_EXHAUSTED quota');
+          return missing;
+        },
+      );
+      expect(calls, 2);
+      expect(results.single.passed, isTrue);
+      expect(results.single.error, isNull);
+
+      calls = 0;
+      results = await runEvalSuite(
+        assistant,
+        cases: [case4],
+        delayBetweenCases: Duration.zero,
+        retryDelay: Duration.zero,
+        runFlow: (_) async {
+          calls++;
+          throw Exception('429 RESOURCE_EXHAUSTED ${'x' * 200}');
+        },
+      );
+      expect(calls, 3);
+      expect(results.single.passed, isFalse);
+      expect(results.single.error, contains('RESOURCE_EXHAUSTED'));
+      final table = formatEvalTable(results);
+      expect(table, contains('...'));
+
+      results = await runEvalSuite(
+        assistant,
+        cases: [case4],
+        delayBetweenCases: Duration.zero,
+        caseTimeout: const Duration(milliseconds: 50),
+        runFlow: (_) => Completer<RefundResponse>().future,
+      );
+      expect(results.single.passed, isFalse);
+      expect(results.single.error, contains('ERROR: timeout'));
+
+      calls = 0;
+      results = await runEvalSuite(
+        assistant,
+        cases: [case4],
+        delayBetweenCases: Duration.zero,
+        retryDelay: Duration.zero,
+        runFlow: (_) async {
+          calls++;
+          throw Exception('bad request');
+        },
+      );
+      expect(calls, 1);
+      expect(results.single.passed, isFalse);
     });
   });
 

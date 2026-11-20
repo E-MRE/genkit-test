@@ -1,0 +1,305 @@
+{
+  "generatedAt": "2026-11-20T12:47:19.472433Z",
+  "model": "gemini-flash-lite-latest",
+  "modelNameSource": "configured (Genkit 0.16.x does not expose the resolved model)",
+  "summary": {
+    "total": 10,
+    "passed": 8,
+    "failed": 2
+  },
+  "cases": [
+    {
+      "case": 1,
+      "input": "1042 numaralı siparişteki 3 kahveden 2'sini iade etmek istiyorum, soğuk gelmişti.",
+      "expected": {
+        "status": "ok",
+        "orderNumber": 1042,
+        "items": [
+          {
+            "product": "Latte",
+            "quantity": 2
+          }
+        ],
+        "expectToolCall": true,
+        "note": "reason about being cold"
+      },
+      "actual": {
+        "status": "ok",
+        "orderNumber": 1042,
+        "items": [
+          {
+            "product": "Latte",
+            "quantity": 2
+          }
+        ],
+        "reason": "soğuk gelmişti",
+        "missingInfo": []
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        1042
+      ],
+      "passed": true
+    },
+    {
+      "case": 2,
+      "input": "1043'teki sandviçi iade edin, bayattı.",
+      "expected": {
+        "status": "ok",
+        "orderNumber": 1043,
+        "items": [
+          {
+            "product": "Sandviç",
+            "quantity": 1
+          }
+        ],
+        "expectToolCall": true
+      },
+      "actual": {
+        "status": "ok",
+        "orderNumber": 1043,
+        "items": [
+          {
+            "product": "Sandviç",
+            "quantity": 1
+          }
+        ],
+        "reason": "bayattı",
+        "missingInfo": []
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        1043
+      ],
+      "passed": true
+    },
+    {
+      "case": 3,
+      "input": "1044 siparişimi tamamen iade etmek istiyorum.",
+      "expected": {
+        "status": "ok",
+        "orderNumber": 1044,
+        "items": [
+          {
+            "product": "Filtre kahve",
+            "quantity": 1
+          }
+        ],
+        "expectToolCall": true
+      },
+      "actual": {
+        "status": "ok",
+        "orderNumber": 1044,
+        "items": [
+          {
+            "product": "Filtre kahve",
+            "quantity": 1
+          }
+        ],
+        "reason": null,
+        "missingInfo": []
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        1044
+      ],
+      "passed": true
+    },
+    {
+      "case": 4,
+      "input": "Siparişimdeki cheesecake'i iade etmek istiyorum.",
+      "expected": {
+        "status": "missing_info",
+        "orderNumber": null,
+        "items": [],
+        "expectToolCall": false,
+        "note": "orderNumber null, tool not called"
+      },
+      "actual": {
+        "status": "missing_info",
+        "orderNumber": 1,
+        "items": [],
+        "reason": null,
+        "missingInfo": [
+          "orderNumber"
+        ]
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        0
+      ],
+      "passed": false
+    },
+    {
+      "case": 5,
+      "input": "9999 numaralı siparişi iade et.",
+      "expected": {
+        "status": "order_not_found",
+        "orderNumber": 9999,
+        "items": [],
+        "expectToolCall": true
+      },
+      "actual": {
+        "status": "order_not_found",
+        "orderNumber": 9999,
+        "items": [],
+        "reason": "iade et",
+        "missingInfo": []
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        9999
+      ],
+      "passed": true
+    },
+    {
+      "case": 6,
+      "input": "1042'deki 5 latteyi iade etmek istiyorum.",
+      "expected": {
+        "status": "invalid_quantity",
+        "orderNumber": 1042,
+        "items": [],
+        "expectToolCall": true
+      },
+      "actual": {
+        "status": "invalid_quantity",
+        "orderNumber": 1042,
+        "items": [],
+        "reason": "",
+        "missingInfo": []
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        1042
+      ],
+      "passed": true
+    },
+    {
+      "case": 7,
+      "input": "1043'teki pizzayı iade et.",
+      "expected": {
+        "status": "item_not_in_order",
+        "orderNumber": 1043,
+        "items": [],
+        "expectToolCall": true
+      },
+      "actual": {
+        "status": "item_not_in_order",
+        "orderNumber": 1043,
+        "items": [],
+        "reason": null,
+        "missingInfo": []
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        1043
+      ],
+      "passed": true
+    },
+    {
+      "case": 8,
+      "input": "1042'deki cheesecake ile 1 latteyi iade edin.",
+      "expected": {
+        "status": "ok",
+        "orderNumber": 1042,
+        "items": [
+          {
+            "product": "Cheesecake",
+            "quantity": 1
+          },
+          {
+            "product": "Latte",
+            "quantity": 1
+          }
+        ],
+        "expectToolCall": true,
+        "note": "reason null"
+      },
+      "actual": {
+        "status": "ok",
+        "orderNumber": 1042,
+        "items": [
+          {
+            "product": "Cheesecake",
+            "quantity": 1
+          },
+          {
+            "product": "Latte",
+            "quantity": 1
+          }
+        ],
+        "reason": "iade edin",
+        "missingInfo": []
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        1042
+      ],
+      "passed": true
+    },
+    {
+      "case": 9,
+      "input": "Merhaba, kargom nerede?",
+      "expected": {
+        "status": "not_refund_request",
+        "orderNumber": null,
+        "items": [],
+        "expectToolCall": false
+      },
+      "actual": {
+        "status": "not_refund_request",
+        "orderNumber": 0,
+        "items": [],
+        "reason": "null",
+        "missingInfo": []
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        0
+      ],
+      "passed": false
+    },
+    {
+      "case": 10,
+      "input": "1043 numaralı siparişteki suların hepsini iade edeyim.",
+      "expected": {
+        "status": "ok",
+        "orderNumber": 1043,
+        "items": [
+          {
+            "product": "Su",
+            "quantity": 2
+          }
+        ],
+        "expectToolCall": true
+      },
+      "actual": {
+        "status": "ok",
+        "orderNumber": 1043,
+        "items": [
+          {
+            "product": "Su",
+            "quantity": 2
+          }
+        ],
+        "reason": null,
+        "missingInfo": []
+      },
+      "toolCalled": true,
+      "toolCallCount": 1,
+      "calledOrderNumbers": [
+        1043
+      ],
+      "passed": true
+    }
+  ]
+}

@@ -17,10 +17,7 @@ Future<void> main() async {
   final modelName = readEnvVar('GEMINI_MODEL') ?? defaultGeminiFlashModel;
   final port = int.tryParse(readEnvVar('PORT') ?? '') ?? 8080;
 
-  final assistant = createRefundAssistant(
-    apiKey: apiKey,
-    modelName: modelName,
-  );
+  final assistant = createRefundAssistant(apiKey: apiKey, modelName: modelName);
 
   final handler = createRefundServerHandler(assistant);
   final server = await io.serve(handler, InternetAddress.anyIPv4, port);

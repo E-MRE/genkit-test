@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:genkit/genkit.dart';
 
 import 'refund_assistant.dart';
 
@@ -10,10 +13,7 @@ class ExpectedItem {
   final String product;
   final int quantity;
 
-  Map<String, Object?> toJson() => {
-    'product': product,
-    'quantity': quantity,
-  };
+  Map<String, Object?> toJson() => {'product': product, 'quantity': quantity};
 }
 
 /// Definition of one refund evaluation test case.
@@ -24,6 +24,7 @@ class EvalCase {
     required this.expectedStatus,
     required this.expectedOrderNumber,
     required this.expectedItems,
+    this.expectToolCall = true,
     this.note,
   });
 
@@ -32,6 +33,9 @@ class EvalCase {
   final String expectedStatus;
   final int? expectedOrderNumber;
   final List<ExpectedItem> expectedItems;
+
+  /// Whether `getOrder` must be called (true) or must NOT be called (false).
+  final bool expectToolCall;
   final String? note;
 
   Map<String, Object?> toJson() => {
@@ -40,6 +44,7 @@ class EvalCase {
     'expectedStatus': expectedStatus,
     'expectedOrderNumber': expectedOrderNumber,
     'expectedItems': [for (final item in expectedItems) item.toJson()],
+    'expectToolCall': expectToolCall,
     if (note != null) 'note': note,
   };
 }
@@ -75,6 +80,7 @@ const List<EvalCase> refundEvalCases = <EvalCase>[
     expectedStatus: 'missing_info',
     expectedOrderNumber: null,
     expectedItems: [],
+    expectToolCall: false,
     note: 'orderNumber null, tool not called',
   ),
   EvalCase(
@@ -103,10 +109,7 @@ const List<EvalCase> refundEvalCases = <EvalCase>[
     input: "1042'deki cheesecake ile 1 latteyi iade edin.",
     expectedStatus: 'ok',
     expectedOrderNumber: 1042,
-    expectedItems: [
-      ExpectedItem('Cheesecake', 1),
-      ExpectedItem('Latte', 1),
-    ],
+    expectedItems: [ExpectedItem('Cheesecake', 1), ExpectedItem('Latte', 1)],
     note: 'reason null',
   ),
   EvalCase(
@@ -115,6 +118,7 @@ const List<EvalCase> refundEvalCases = <EvalCase>[
     expectedStatus: 'not_refund_request',
     expectedOrderNumber: null,
     expectedItems: [],
+    expectToolCall: false,
   ),
   EvalCase(
     id: 10,
@@ -154,6 +158,7 @@ class EvalCaseResult {
       'status': evalCase.expectedStatus,
       'orderNumber': evalCase.expectedOrderNumber,
       'items': [for (final item in evalCase.expectedItems) item.toJson()],
+      'expectToolCall': evalCase.expectToolCall,
       if (evalCase.note != null) 'note': evalCase.note,
     },
     'actual': actual == null
@@ -184,11 +189,53 @@ bool matchesExpected(EvalCase evalCase, RefundResponse actual) {
   return _itemsMatch(evalCase.expectedItems, actual.items);
 }
 
+/// A case passes only if status, orderNumber and items match AND the tool
+/// expectation holds: `getOrder` must NOT be called when
+/// [EvalCase.expectToolCall] is false, and MUST be called otherwise.
+bool casePasses(
+  EvalCase evalCase,
+  RefundResponse actual, {
+  required bool toolCalled,
+}) {
+  return matchesExpected(evalCase, actual) &&
+      toolCalled == evalCase.expectToolCall;
+}
+
+/// True for quota / rate-limit style errors that deserve one delayed retry.
+bool isQuotaError(Object error) {
+  if (error is GenkitException &&
+      error.status == StatusCodes.RESOURCE_EXHAUSTED) {
+    return true;
+  }
+  final text = error.toString().toLowerCase();
+  return text.contains('429') ||
+      text.contains('resource_exhausted') ||
+      text.contains('quota');
+}
+
+/// True for transient provider overload errors (503 / "high demand").
+bool isTransientError(Object error) {
+  final text = error.toString().toLowerCase();
+  return text.contains('high demand') ||
+      text.contains('unavailable') ||
+      text.contains('503') ||
+      text.contains('overloaded');
+}
+
+/// Shortens [text] to a single line of at most [max] characters.
+String shortError(String text, {int max = 80}) {
+  final oneLine = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+  return oneLine.length <= max
+      ? oneLine
+      : '${oneLine.substring(0, max - 3)}...';
+}
+
 bool _itemsMatch(List<ExpectedItem> expected, List<RefundItem> actual) {
   if (expected.length != actual.length) return false;
 
   final sortedExpected = [
-    for (final item in expected) (product: item.product, quantity: item.quantity),
+    for (final item in expected)
+      (product: item.product, quantity: item.quantity),
   ]..sort(_compareItemRecords);
 
   final sortedActual = [
@@ -215,40 +262,75 @@ int _compareItemRecords(
 
 /// Runs all [cases] sequentially through [assistant.refundFlow] and records
 /// per-case tool usage.
+///
+/// Waits [delayBetweenCases] between cases and retries a case once after
+/// [retryDelay] when it fails with a 429 / RESOURCE_EXHAUSTED / quota error.
+/// [runFlow] overrides the flow call (used by tests).
 Future<List<EvalCaseResult>> runEvalSuite(
   RefundAssistant assistant, {
   List<EvalCase> cases = refundEvalCases,
+  Duration delayBetweenCases = const Duration(seconds: 4),
+  Duration retryDelay = const Duration(seconds: 30),
+  Duration caseTimeout = const Duration(seconds: 90),
+  int maxAttempts = 3,
+  void Function(EvalCaseResult result)? onResult,
+  Future<RefundResponse> Function(String input)? runFlow,
 }) async {
   final results = <EvalCaseResult>[];
+  final call = runFlow ?? (String input) => assistant.refundFlow(input);
 
-  for (final testCase in cases) {
-    assistant.tracker.reset();
-    try {
-      final response = await assistant.refundFlow(testCase.input);
-      final callCount = assistant.tracker.callCount;
-      results.add(
-        EvalCaseResult(
-          evalCase: testCase,
-          actual: response,
-          toolCalled: callCount > 0,
-          toolCallCount: callCount,
-          calledOrderNumbers: assistant.tracker.calledOrderNumbers,
-          passed: matchesExpected(testCase, response),
-        ),
-      );
-    } catch (error) {
-      final callCount = assistant.tracker.callCount;
-      results.add(
-        EvalCaseResult(
-          evalCase: testCase,
-          actual: null,
-          toolCalled: callCount > 0,
-          toolCallCount: callCount,
-          calledOrderNumbers: assistant.tracker.calledOrderNumbers,
-          passed: false,
-          error: error.toString(),
-        ),
-      );
+  for (var index = 0; index < cases.length; index++) {
+    final testCase = cases[index];
+    if (index > 0) await Future<void>.delayed(delayBetweenCases);
+
+    var attempt = 0;
+    while (true) {
+      attempt++;
+      assistant.tracker.reset();
+      try {
+        final response = await call(testCase.input).timeout(
+          caseTimeout,
+          onTimeout: () => throw TimeoutException(
+            'timeout after ${caseTimeout.inSeconds}s',
+            caseTimeout,
+          ),
+        );
+        final callCount = assistant.tracker.callCount;
+        results.add(
+          EvalCaseResult(
+            evalCase: testCase,
+            actual: response,
+            toolCalled: callCount > 0,
+            toolCallCount: callCount,
+            calledOrderNumbers: assistant.tracker.calledOrderNumbers,
+            passed: casePasses(testCase, response, toolCalled: callCount > 0),
+          ),
+        );
+        onResult?.call(results.last);
+        break;
+      } catch (error) {
+        if (attempt < maxAttempts &&
+            (isQuotaError(error) || isTransientError(error))) {
+          await Future<void>.delayed(retryDelay);
+          continue;
+        }
+        final callCount = assistant.tracker.callCount;
+        results.add(
+          EvalCaseResult(
+            evalCase: testCase,
+            actual: null,
+            toolCalled: callCount > 0,
+            toolCallCount: callCount,
+            calledOrderNumbers: assistant.tracker.calledOrderNumbers,
+            passed: false,
+            error: error is TimeoutException
+                ? 'ERROR: timeout (${caseTimeout.inSeconds}s)'
+                : error.toString(),
+          ),
+        );
+        onResult?.call(results.last);
+        break;
+      }
     }
   }
 
@@ -256,7 +338,7 @@ Future<List<EvalCaseResult>> runEvalSuite(
 }
 
 /// Formats evaluation results into a fixed-width ASCII table with columns:
-/// case, expected status, actual status, tool called (yes/no), pass/fail.
+/// case, expected status, actual status, tool called (yes/no), pass/fail, error.
 String formatEvalTable(List<EvalCaseResult> results) {
   const headers = [
     'case',
@@ -264,6 +346,7 @@ String formatEvalTable(List<EvalCaseResult> results) {
     'actual status',
     'tool called (yes/no)',
     'pass/fail',
+    'error',
   ];
 
   final rows = <List<String>>[
@@ -274,6 +357,7 @@ String formatEvalTable(List<EvalCaseResult> results) {
         r.actualStatusLabel,
         r.toolCalled ? 'yes' : 'no',
         r.passed ? 'pass' : 'fail',
+        r.error == null ? '' : shortError(r.error!),
       ],
   ];
 
@@ -294,8 +378,7 @@ String formatEvalTable(List<EvalCaseResult> results) {
     return '| ${padded.join(' | ')} |';
   }
 
-  final divider =
-      '|-${widths.map((w) => '-' * w).join('-|-')}-|';
+  final divider = '|-${widths.map((w) => '-' * w).join('-|-')}-|';
 
   final buffer = StringBuffer()
     ..writeln(formatRow(headers))
@@ -325,6 +408,8 @@ Future<void> writeEvalJson(
   final payload = {
     'generatedAt': DateTime.now().toUtc().toIso8601String(),
     'model': modelName,
+    'modelNameSource':
+        'configured (Genkit 0.16.x does not expose the resolved model)',
     'summary': {
       'total': results.length,
       'passed': passedCount,

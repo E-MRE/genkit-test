@@ -22,8 +22,15 @@ Future<void> main() async {
   );
 
   try {
-    stdout.writeln('Running ${refundEvalCases.length} refundFlow eval cases ($modelName)...\n');
-    final results = await runEvalSuite(assistant);
+    stdout.writeln(
+      'Running ${refundEvalCases.length} refundFlow eval cases ($modelName)...\n',
+    );
+    final results = await runEvalSuite(
+      assistant,
+      onResult: (r) => stdout.writeln(
+        'case ${r.evalCase.id}: ${r.actualStatusLabel} ${r.passed ? 'pass' : 'fail'} ${r.error == null ? '' : shortError(r.error!)}',
+      ),
+    );
 
     stdout.write(formatEvalTable(results));
     await writeEvalJson(results, modelName: modelName);
@@ -35,4 +42,6 @@ Future<void> main() async {
   } finally {
     await assistant.ai.shutdown();
   }
+  await stdout.flush();
+  exit(exitCode);
 }

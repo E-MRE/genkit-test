@@ -25,7 +25,7 @@ base class GetOrderInput {
       _GetOrderInputTypeFactory();
 
   int get orderNumber {
-    return (_json['orderNumber'] as num).toInt();
+    return _json['orderNumber'] as int;
   }
 
   set orderNumber(int value) {
@@ -54,17 +54,17 @@ base class _GetOrderInputTypeFactory extends SchemanticType<GetOrderInput> {
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
     name: 'GetOrderInput',
-    definition: <String, Object?>{
-      'type': 'object',
-      'description': 'Lookup parameters for retrieving an order by number.',
-      'properties': <String, Object?>{
-        'orderNumber': <String, Object?>{
-          'type': 'integer',
-          'description': 'The integer order number to look up, e.g. 1042.',
-        },
-      },
-      'required': ['orderNumber'],
-    },
+    definition: $Schema
+        .object(
+          properties: {
+            'orderNumber': $Schema.integer(
+              description: 'The integer order number to look up, e.g. 1042.',
+            ),
+          },
+          required: ['orderNumber'],
+          description: 'Lookup parameters for retrieving an order by number.',
+        )
+        .value,
     dependencies: [],
   );
 }
@@ -94,7 +94,7 @@ base class RefundItem {
   }
 
   int get quantity {
-    return (_json['quantity'] as num).toInt();
+    return _json['quantity'] as int;
   }
 
   set quantity(int value) {
@@ -123,23 +123,22 @@ base class _RefundItemTypeFactory extends SchemanticType<RefundItem> {
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
     name: 'RefundItem',
-    definition: <String, Object?>{
-      'type': 'object',
-      'description': 'A product and integer quantity.',
-      'properties': <String, Object?>{
-        'product': <String, Object?>{
-          'type': 'string',
-          'description':
-              'Exact product name as returned by getOrder (never invent or rename).',
-        },
-        'quantity': <String, Object?>{
-          'type': 'integer',
-          'description': 'Positive integer quantity of the product.',
-          'minimum': 1,
-        },
-      },
-      'required': ['product', 'quantity'],
-    },
+    definition: $Schema
+        .object(
+          properties: {
+            'product': $Schema.string(
+              description:
+                  'Exact product name as returned by getOrder (never invent or rename).',
+            ),
+            'quantity': $Schema.integer(
+              description: 'Positive integer quantity of the product.',
+              minimum: 1,
+            ),
+          },
+          required: ['product', 'quantity'],
+          description: 'A product and integer quantity.',
+        )
+        .value,
     dependencies: [],
   );
 }
@@ -179,7 +178,7 @@ base class GetOrderOutput {
   }
 
   int get orderNumber {
-    return (_json['orderNumber'] as num).toInt();
+    return _json['orderNumber'] as int;
   }
 
   set orderNumber(int value) {
@@ -218,29 +217,27 @@ base class _GetOrderOutputTypeFactory extends SchemanticType<GetOrderOutput> {
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
     name: 'GetOrderOutput',
-    definition: <String, Object?>{
-      'type': 'object',
-      'description': 'Result of looking up an order by orderNumber.',
-      'properties': <String, Object?>{
-        'status': <String, Object?>{
-          'type': 'string',
-          'description':
-              'Whether the order exists ("found") or not ("not found").',
-          'enum': ['found', 'not found'],
-        },
-        'orderNumber': <String, Object?>{
-          'type': 'integer',
-          'description': 'The order number that was queried.',
-        },
-        'items': <String, Object?>{
-          'type': 'array',
-          'description':
-              'Items in the order; empty when status is "not found".',
-          'items': <String, Object?>{r'$ref': r'#/$defs/RefundItem'},
-        },
-      },
-      'required': ['status', 'orderNumber', 'items'],
-    },
+    definition: $Schema
+        .object(
+          properties: {
+            'status': $Schema.string(
+              description:
+                  'Whether the order exists ("found") or not ("not found").',
+              enumValues: ['found', 'not found'],
+            ),
+            'orderNumber': $Schema.integer(
+              description: 'The order number that was queried.',
+            ),
+            'items': $Schema.list(
+              description:
+                  'Items in the order; empty when status is "not found".',
+              items: $Schema.fromMap({'\$ref': r'#/$defs/RefundItem'}),
+            ),
+          },
+          required: ['status', 'orderNumber', 'items'],
+          description: 'Result of looking up an order by orderNumber.',
+        )
+        .value,
     dependencies: [RefundItem.$schema],
   );
 }
@@ -284,7 +281,7 @@ base class RefundResponse {
   }
 
   int? get orderNumber {
-    return (_json['orderNumber'] as num?)?.toInt();
+    return _json['orderNumber'] as int?;
   }
 
   set orderNumber(int? value) {
@@ -347,47 +344,43 @@ base class _RefundResponseTypeFactory extends SchemanticType<RefundResponse> {
   @override
   JsonSchemaMetadata get schemaMetadata => JsonSchemaMetadata(
     name: 'RefundResponse',
-    definition: <String, Object?>{
-      'type': 'object',
-      'description': 'Structured refund decision extracted from user text.',
-      'properties': <String, Object?>{
-        'status': <String, Object?>{
-          'type': 'string',
-          'description': 'Outcome of validating the Turkish refund request.',
-          'enum': [
-            'ok',
-            'missing_info',
-            'order_not_found',
-            'invalid_quantity',
-            'item_not_in_order',
-            'not_refund_request',
-          ],
-        },
-        'orderNumber': <String, Object?>{
-          'type': 'integer',
-          'description':
-              'Order number from the user message, or null if absent.',
-        },
-        'items': <String, Object?>{
-          'type': 'array',
-          'description':
-              'Refund items using exact product names from getOrder. Empty unless status is "ok".',
-          'items': <String, Object?>{r'$ref': r'#/$defs/RefundItem'},
-        },
-        'reason': <String, Object?>{
-          'type': 'string',
-          'description':
-              'Short refund reason from the user message, or null if no reason was given.',
-        },
-        'missingInfo': <String, Object?>{
-          'type': 'array',
-          'description':
-              'List of missing required fields when status is "missing_info" (e.g. ["orderNumber"]). Empty otherwise.',
-          'items': <String, Object?>{'type': 'string'},
-        },
-      },
-      'required': ['status', 'items', 'missingInfo'],
-    },
+    definition: $Schema
+        .object(
+          properties: {
+            'status': $Schema.string(
+              description: 'Outcome of validating the Turkish refund request.',
+              enumValues: [
+                'ok',
+                'missing_info',
+                'order_not_found',
+                'invalid_quantity',
+                'item_not_in_order',
+                'not_refund_request',
+              ],
+            ),
+            'orderNumber': $Schema.integer(
+              description:
+                  'Order number from the user message, or null if absent.',
+            ),
+            'items': $Schema.list(
+              description:
+                  'Refund items using exact product names from getOrder. Empty unless status is "ok".',
+              items: $Schema.fromMap({'\$ref': r'#/$defs/RefundItem'}),
+            ),
+            'reason': $Schema.string(
+              description:
+                  'Short refund reason from the user message, or null if no reason was given.',
+            ),
+            'missingInfo': $Schema.list(
+              description:
+                  'List of missing required fields when status is "missing_info" (e.g. ["orderNumber"]). Empty otherwise.',
+              items: $Schema.string(),
+            ),
+          },
+          required: ['status', 'items', 'missingInfo'],
+          description: 'Structured refund decision extracted from user text.',
+        )
+        .value,
     dependencies: [RefundItem.$schema],
   );
 }

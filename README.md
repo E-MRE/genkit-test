@@ -6,7 +6,7 @@ A single Genkit flow (`refundFlow`) parses free-text Turkish customer messages i
 
 ## Prerequisites
 
-- **Dart SDK `>=3.12.0`** (required by `genkit ^1.0.3` and `schemantic ^1.0.0`)
+- **Dart SDK `^3.10.0`** (pinned to `genkit 0.16.1`, `genkit_google_genai 0.3.1`, `genkit_shelf 0.1.13`, `schemantic 0.2.2`; newer 1.x releases need Dart 3.12)
 - A Gemini API key from Google AI Studio (`GEMINI_API_KEY`)
 
 ## 1. Install
@@ -41,7 +41,7 @@ Optional environment variables:
 
 ## 2. Run the eval
 
-Runs all 10 Turkish test cases through `refundFlow`, prints a summary table (`case`, `expected status`, `actual status`, `tool called (yes/no)`, `pass/fail`), and writes detailed output to `results/eval.json`:
+Runs all 10 Turkish test cases through `refundFlow`, prints a summary table (`case`, `expected status`, `actual status`, `tool called (yes/no)`, `pass/fail`, `error`), and writes detailed output (including full error text) to `results/eval.json`. A case passes only if status, orderNumber and items match and the tool expectation holds (`getOrder` must not be called for cases 4 and 9, and must be called for all others). Cases run 4 s apart; a 429 / quota error is retried once after 30 s:
 
 ```bash
 dart run bin/eval.dart

@@ -19,17 +19,9 @@ const List<String> refundStatuses = <String>[
 
 /// Fake in-memory order catalog used by the `getOrder` tool.
 const Map<int, List<({String product, int quantity})>> fakeOrders = {
-  1042: [
-    (product: 'Latte', quantity: 3),
-    (product: 'Cheesecake', quantity: 1),
-  ],
-  1043: [
-    (product: 'Su', quantity: 2),
-    (product: 'Sandviç', quantity: 1),
-  ],
-  1044: [
-    (product: 'Filtre kahve', quantity: 1),
-  ],
+  1042: [(product: 'Latte', quantity: 3), (product: 'Cheesecake', quantity: 1)],
+  1043: [(product: 'Su', quantity: 2), (product: 'Sandviç', quantity: 1)],
+  1044: [(product: 'Filtre kahve', quantity: 1)],
 };
 
 /// Input schema for the `getOrder` tool.
@@ -160,7 +152,7 @@ Follow these rules strictly in order:
    - If getOrder returns status="not found":
      Return status="order_not_found", orderNumber=<the requested orderNumber>, items=[], reason=<short reason if stated, otherwise omit>, missingInfo=[].
    - If getOrder returns status="found", validate every requested item against the returned items:
-     * Map colloquial Turkish item references to the exact product name in the order (for example "kahve" -> "Latte" when Latte is the coffee in that order, "sandviçi" -> "Sandviç", "suların hepsini" -> "Su" with the full ordered quantity, "tamamen iade" -> all items in the order with their full quantities).
+     * Map colloquial or partial item references to the exact product name returned by getOrder. "All" or "the whole order" means every item in the order at its full ordered quantity.
      * Always copy the product name EXACTLY as returned by getOrder. Never invent products.
      * If any requested product is not in the order, return status="item_not_in_order", orderNumber=<orderNumber>, items=[], reason=<short reason if stated, otherwise omit>, missingInfo=[].
      * If any requested quantity is <= 0 or exceeds the ordered quantity for that product, return status="invalid_quantity", orderNumber=<orderNumber>, items=[], reason=<short reason if stated, otherwise omit>, missingInfo=[].
@@ -228,30 +220,11 @@ RefundAssistant createRefundAssistant({
         config: GeminiOptions(temperature: 0.0),
       );
 
-      if (response.finishReason == FinishReason.failed) {
-        if (response.cause is GenkitException) {
-          throw response.cause!;
-        }
-        throw GenkitException(
-          response.error?.message ??
-              response.finishMessage ??
-              'Model generation failed.',
-          status: StatusCode.internal,
-        );
-      }
-
-      if (response.finishReason == FinishReason.aborted) {
-        throw GenkitException(
-          response.finishMessage ?? 'Model generation aborted.',
-          status: StatusCode.aborted,
-        );
-      }
-
       final output = response.output;
       if (output == null) {
         throw GenkitException(
           'Model did not return a structured RefundResponse.',
-          status: StatusCode.internal,
+          status: StatusCodes.INTERNAL,
         );
       }
       return output;

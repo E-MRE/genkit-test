@@ -13,6 +13,17 @@ Honest notes on what worked, what was unclear or inconsistent in the Genkit Dart
   - `dart test` (unit tests for `.env` reading, `getOrder` tool + call counting, `RefundResponse` schema parsing, 10-case eval matcher/table/JSON writer, and Shelf HTTP handler routing)
   - Starting `bin/server.dart` and hitting `GET /health` and `POST /refundFlow` over HTTP.
 
+## Downgrade to 0.16.x (local Dart 3.11.5)
+
+The project was moved from genkit 1.0.3 / genkit_google_genai 1.2.0 / genkit_shelf 1.0.3 / schemantic 1.0.0 (Dart ^3.12.0) to genkit 0.16.1, genkit_google_genai 0.3.1, genkit_shelf 0.1.13, schemantic 0.2.2 and schemantic_builder 0.1.2 (Dart ^3.10.0), so it builds on local Dart 3.11.5. API differences hit:
+
+1. `FinishReason.failed` / `FinishReason.aborted` do not exist in 0.16.1 (only stop, length, blocked, interrupted, other, unknown). `GenerateResponseHelper` also has no `cause` / `error`. Provider errors are expected to be thrown, so the failed/aborted branches in `refundFlow` were removed. Not verified against the live API (no key); if a failure surfaces as a non-stop finish with null output, the existing "did not return a structured RefundResponse" exception covers it.
+2. `StatusCode` is named `StatusCodes` with upper-case members (`StatusCodes.INTERNAL`, `RESOURCE_EXHAUSTED`).
+3. `GenkitRouter`, `asShelfHandler` and `CorsOptions` do not exist in genkit_shelf 0.1.13 (and `package:genkit/io.dart` is not needed). Routes are mounted with `router.post('/refundFlow', shelfHandler(flow))`. There is no built-in CORS option, so CORS headers are no longer added.
+4. `dart run build_runner build --delete-conflicting-outputs` still works but prints that the flag was removed and is ignored.
+5. Dot shorthand (`.string()`, `.response(...)`) still compiles on 3.11.5, `defineTool` / `ToolResult`, `toolNames` and `tools:` behaved the same, and the generated `.g.dart` regenerated cleanly with schemantic_builder 0.1.2.
+6. Genkit 0.16.1 does not expose the resolved model name; `results/eval.json` records the configured name (`modelNameSource` says so).
+
 ## Unclear / broken items in Genkit Dart docs vs. SDK
 
 1. **Dart SDK version requirement mismatch (`3.10.0` vs `^3.12.0`)**
