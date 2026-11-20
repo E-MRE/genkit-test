@@ -17,6 +17,10 @@ Future<void> main() async {
 
   final modelName = readEnvVar('GEMINI_MODEL') ?? defaultGeminiFlashModel;
   final port = int.tryParse(readEnvVar('PORT') ?? '') ?? 8080;
+  final host = readEnvVar('HOST');
+  final bindAddress = (host == null || host.isEmpty)
+      ? InternetAddress.loopbackIPv4
+      : (InternetAddress.tryParse(host) ?? InternetAddress.loopbackIPv4);
   final staticWebDir = readEnvVar('STATIC_WEB_DIR');
 
   final assistant = createRefundAssistant(apiKey: apiKey, modelName: modelName);
@@ -27,7 +31,7 @@ Future<void> main() async {
     assistantFlow: orderAssistant.assistantFlow,
     staticWebDir: staticWebDir,
   );
-  final server = await io.serve(handler, InternetAddress.anyIPv4, port);
+  final server = await io.serve(handler, bindAddress, port);
   stdout.writeln(
     'Genkit HTTP server listening on http://localhost:${server.port} '
     '(/refundFlow, /assistantFlow, /health; model: $modelName)',

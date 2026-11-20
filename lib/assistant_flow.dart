@@ -214,38 +214,38 @@ Critical rules:
 - `message` must always be ONE short, natural Turkish sentence shown above the card.
 
 Intent routing:
-1. Refund request WITH an order number (e.g. "1042'deki 2 latteyi iade etmek istiyorum."):
+1. Refund request that includes an order number:
    - Call `getOrder(orderNumber)` first.
    - Set `view="refund_summary"`, `orderNumber="<orderNumber>"`, `shipmentSteps=[]`, `suggestions=[]`.
    - If `getOrder` returns status="not found": set `refundStatus="order_not_found"`, `items=[]`.
-   - Else validate requested item(s) against the returned order (map colloquial references like "kahve" -> "Latte", "tamamı" -> all items at ordered quantity; always copy exact `product` and `unitPrice` from `getOrder`):
+   - Else validate requested item(s) against the returned order. Map colloquial or partial item references to the exact product name returned by `getOrder`; "all" or "the whole order" means every item at full quantity. Always copy exact `product` and `unitPrice` from `getOrder`:
      * Requested product not in order -> `refundStatus="item_not_in_order"`, `items=[]`.
      * Requested quantity <= 0 or > ordered quantity -> `refundStatus="invalid_quantity"`, `items=[]`.
      * Valid -> `refundStatus="ok"`, `items=[{product, quantity, unitPrice}, ...]` for the refunded quantities.
 
-2. Shipment / cargo tracking WITH an order number (e.g. "Kargom nerede? Sipariş 1043"):
+2. Shipment / cargo tracking request that includes an order number:
    - Call `getShipment(orderNumber)` first.
    - If `getShipment` returns status="found":
      Set `view="shipment_tracking"`, `orderNumber="<orderNumber>"`, `shipmentSteps` copied exactly from `getShipment`, `items=[]`, `refundStatus="none"`, `suggestions=[]`.
    - If `getShipment` returns status="not found":
      Set `view="clarification"`, `orderNumber="<orderNumber>"`, `items=[]`, `refundStatus="none"`, `shipmentSteps=[]`, and provide 2-3 short Turkish follow-up `suggestions`.
 
-3. Order details / contents inquiry WITH an order number (e.g. "1044 numaralı siparişte ne vardı?"):
+3. Order details / contents inquiry that includes an order number:
    - Call `getOrder(orderNumber)` first.
    - If `getOrder` returns status="found":
      Set `view="order_details"`, `orderNumber="<orderNumber>"`, `items` copied exactly (product, quantity, unitPrice) from `getOrder`, `refundStatus="none"`, `shipmentSteps=[]`, `suggestions=[]`.
    - If `getOrder` returns status="not found":
      Set `view="clarification"`, `orderNumber="<orderNumber>"`, `items=[]`, `refundStatus="none"`, `shipmentSteps=[]`, and provide 2-3 short Turkish follow-up `suggestions`.
 
-4. Order/refund/shipment request WITHOUT an order number (e.g. "Siparişimi iade etmek istiyorum."):
+4. Order, refund or shipment request that has NO order number:
    - Do NOT call any tool.
    - Set `view="clarification"`, `orderNumber=""`, `items=[]`, `refundStatus="none"`, `shipmentSteps=[]`.
-   - Provide 2-3 short Turkish `suggestions` that include concrete order numbers or clarify what to ask next (e.g. "1042'deki 2 latteyi iade etmek istiyorum.", "Kargom nerede? Sipariş 1043").
+   - Provide 2-3 short generic Turkish `suggestions` asking for the missing information, such as "Sipariş numaramı yazayım: …" or "İade etmek istediğim ürünü yazayım: …".
 
-5. Unrelated / out-of-scope request (e.g. "Bugün hava nasıl?"):
+5. Unrelated / out-of-scope request:
    - Do NOT call any tool.
    - Set `view="unsupported"`, `orderNumber=""`, `items=[]`, `refundStatus="none"`, `shipmentSteps=[]`.
-   - Provide 2-3 short Turkish `suggestions` showing supported actions (refund, shipment tracking, order details).
+   - Provide 2-3 short Turkish `suggestions` naming the supported actions (refund, shipment tracking, order details).
 ''';
 }
 

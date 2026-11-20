@@ -38,6 +38,7 @@ Optional environment variables:
 
 - `GEMINI_MODEL` — defaults to `gemini-flash-latest`
 - `PORT` — HTTP server port, defaults to `8080`
+- `HOST` — bind address, defaults to loopback (`127.0.0.1`); set `HOST=0.0.0.0` to expose on the network
 
 ## 2. Run the eval
 
