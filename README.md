@@ -106,6 +106,10 @@ genkit start -- dart run bin/server.dart
 
 Then open **http://localhost:4000** in your browser (or add `-o` to open it automatically: `genkit start -o -- dart run bin/server.dart`). From the Developer UI you can invoke `refundFlow`, test `getOrder`, and inspect full traces.
 
+## Demo
+
+A minimal Flutter demo app (web & macOS) that calls `refundFlow` over HTTP lives in [`demo_app/`](demo_app/README.md). Start the server from the repo root with `dart run bin/server.dart`, then run `flutter run -d chrome` or `flutter run -d macos` inside `demo_app/`.
+
 ## Tests & static analysis
 
 ```bash

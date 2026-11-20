@@ -344,5 +344,59 @@ void main() {
       );
       expect(badBodyRes.statusCode, 400);
     });
+
+    test('handles localhost CORS preflight and response headers', () async {
+      final handler = createRefundServerHandler(
+        assistant,
+        enableRequestLogging: false,
+      );
+
+      final preflightRes = await handler(
+        Request(
+          'OPTIONS',
+          Uri.parse('http://localhost:8080/refundFlow'),
+          headers: {'origin': 'http://localhost:54321'},
+        ),
+      );
+      expect(preflightRes.statusCode, 204);
+      expect(
+        preflightRes.headers['access-control-allow-origin'],
+        'http://localhost:54321',
+      );
+      expect(
+        preflightRes.headers['access-control-allow-methods'],
+        'POST, OPTIONS',
+      );
+      expect(
+        preflightRes.headers['access-control-allow-headers'],
+        'Content-Type',
+      );
+
+      final postRes = await handler(
+        Request(
+          'POST',
+          Uri.parse('http://localhost:8080/refundFlow'),
+          headers: {
+            'origin': 'http://127.0.0.1:4200',
+            'content-type': 'application/json',
+          },
+          body: 'not-json',
+        ),
+      );
+      expect(postRes.statusCode, 400);
+      expect(
+        postRes.headers['access-control-allow-origin'],
+        'http://127.0.0.1:4200',
+      );
+
+      final foreignRes = await handler(
+        Request(
+          'OPTIONS',
+          Uri.parse('http://localhost:8080/refundFlow'),
+          headers: {'origin': 'https://example.com'},
+        ),
+      );
+      expect(foreignRes.headers['access-control-allow-origin'], isNull);
+    });
   });
 }
